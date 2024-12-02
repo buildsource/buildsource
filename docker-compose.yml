@@ -14,15 +14,12 @@ services:
       - mynetwork
     restart: always
 
-  backup:
+  mongo_backup:
     image: mongo:latest
     container_name: mongo_backup
-    command: >
-      /bin/sh -c 'while true; do
-        mongodump --host mongo --port 27017 --username root --password root --gzip --archive=/backup/mongodb/db_backup_$(date +%Y%m%d_%H%M%S).gz;
-        sleep 86400;
-      done'
+    command: /bin/sh /backup.sh
     volumes:
+      - ./backup.sh:/backup.sh       # Monte o script no contêiner
       - ./backup_data:/backup/mongodb  # Diretório para armazenar os backups
     networks:
       - mynetwork
@@ -59,34 +56,6 @@ services:
     networks:
       - mynetwork
 
-  site_sensuo:
-    container_name: site_sensuo
-    build:
-      context: ./site_sensuo
-    env_file:
-      - ./site_sensuo/.env.local
-    ports:
-      - "3000:3000"
-    depends_on:
-      - mongo
-      - certbot
-    networks:
-      - mynetwork
-    restart: always
-
-  site_buildsource:
-    container_name: site_buildsource
-    build:
-      context: ./site_buildsource
-    env_file:
-      - ./site_buildsource/.env.local
-    depends_on:
-      - mongo
-      - certbot
-    networks:
-      - mynetwork
-    restart: always
-
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -99,7 +68,7 @@ services:
       - "443:443"
     depends_on:
       - mongo
-      - backup
+      - mongo_backup
       - certbot
       - minio
     networks:

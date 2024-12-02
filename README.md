@@ -3,11 +3,13 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./certbot/conf/build
 
 docker network create mynetwork
 
+docker stop $(docker ps -q)
+docker rm $(docker ps -a -q)
+
 docker-compose down -v
 docker-compose up -d --build
 
-docker stop $(docker ps -q)
-docker rm $(docker ps -a -q)
+
 
 docker logs certbot
 
