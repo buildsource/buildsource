@@ -1,0 +1,117 @@
+services:
+  mongo:
+    container_name: mongo
+    build:
+      context: ./mongo
+      dockerfile: Dockerfile
+    env_file:
+      - ./mongo/.env.local
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mynetwork
+    restart: always
+
+  backup:
+    image: mongo:latest
+    container_name: mongo_backup
+    command: >
+      /bin/sh -c 'while true; do
+        mongodump --host mongo --port 27017 --username root --password root --gzip --archive=/backup/mongodb/db_backup_$(date +%Y%m%d_%H%M%S).gz;
+        sleep 86400;
+      done'
+    volumes:
+      - ./backup_data:/backup/mongodb  # Diretório para armazenar os backups
+    networks:
+      - mynetwork
+    depends_on:
+      - mongo
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    command: >
+      certonly --webroot --staging --webroot-path=/var/www/certbot
+      --email claudineiarneckedelima@gmail.com
+      --agree-tos --no-eff-email
+      --force-renewal
+      -d sensuo.site
+    networks:
+      - mynetwork
+    restart: always
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    env_file:
+      - ./minio/.env.local
+    ports:
+      - "9000:9000"  # Porta do serviço MinIO
+      - "9001:9001"  # Porta do console do MinIO
+    volumes:
+      - minio_data:/data  # Volume para persistência de dados do MinIO
+    command: server /data --console-address ":9001"
+    networks:
+      - mynetwork
+
+  site_sensuo:
+    container_name: site_sensuo
+    build:
+      context: ./site_sensuo
+    env_file:
+      - ./site_sensuo/.env.local
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+      - certbot
+    networks:
+      - mynetwork
+    restart: always
+
+  site_buildsource:
+    container_name: site_buildsource
+    build:
+      context: ./site_buildsource
+    env_file:
+      - ./site_buildsource/.env.local
+    depends_on:
+      - mongo
+      - certbot
+    networks:
+      - mynetwork
+    restart: always
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - mongo
+      - backup
+      - certbot
+      - minio
+    networks:
+      - mynetwork
+    restart: always
+
+networks:
+  mynetwork:
+    external: true
+
+volumes:
+  mongo_data:
+  backup_data:
+  minio_data:
+
