@@ -24,3 +24,15 @@ mongosh --authenticationDatabase admin -u buildsource -p 4d77739b-36dd-4760-a98f
 
 
 db.createUser({ user: "sensuo", pwd: "2d3ece0c-7c22-46f2-892f-9de4f69e7dd5", roles: [{ role: "readWrite", db: "sensuo" }] });
+
+docker rm -f nginx
+docker rm -f site_buildsource
+
+docker restart site_buildsource
+
+sudo certbot --nginx -d buildsource.site -d www.buildsource.site
+
+sudo crontab -e
+0 3 * * * certbot renew --quiet
+
+sudo certbot renew --dry-run
