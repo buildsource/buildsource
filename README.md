@@ -30,9 +30,15 @@ docker rm -f site_buildsource
 
 docker restart site_buildsource
 
-sudo certbot --nginx -d buildsource.site -d www.buildsource.site
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d buildsource.site -d www.buildsource.site -d mongo.buildsource.site -d minioapi.buildsource.site -d minioweb.buildsource.site
+sudo certbot --nginx -d sensuo.site -d www.sensuo.site
 
 sudo crontab -e
 0 3 * * * certbot renew --quiet
 
-sudo certbot renew --dry-run
+
+sudo lsof -i :80
+sudo kill -9 12343
