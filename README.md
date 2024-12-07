@@ -42,3 +42,6 @@ sudo crontab -e
 
 sudo lsof -i :80
 sudo kill -9 12343
+
+docker swarm init
+
